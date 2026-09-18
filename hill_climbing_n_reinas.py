@@ -1,6 +1,9 @@
 import random
 import time
 import itertools
+import matplotlib
+matplotlib.use("Agg")  # permite generar la imagen sin necesidad de una ventana gráfica
+import matplotlib.pyplot as plt
 
 def calcular_ataques_diagonales(estado):
     """
@@ -35,52 +38,64 @@ def generar_vecinos_swap(estado):
 def hill_climbing_steepest_ascent(N, max_reinicios=100, max_iteraciones=1000):
     """
     Algoritmo principal: Steepest-Ascent Hill Climbing con reinicios aleatorios.
+
+    Devuelve además métricas para el reporte del taller:
+    - historial_convergencia: evolución del costo SOLO del reinicio que
+      produjo la mejor solución (sirve para la gráfica de convergencia).
+    - reinicios_usados / iteraciones_usadas: para reportar cuánto costó
+      llegar a la solución.
     """
     mejor_estado_global = None
     mejor_costo_global = float('inf')
-    
-    historial_costos_global = []
-    
+    historial_convergencia = []
+
+    reinicios_usados = 0
+    iteraciones_usadas = 0
+
     tiempo_inicio = time.time()
 
     for reinicio in range(max_reinicios):
+        reinicios_usados = reinicio + 1
+
         # Estado inicial: permutación aleatoria de 0 a N-1
         estado_actual = list(range(N))
         random.shuffle(estado_actual)
         costo_actual = calcular_ataques_diagonales(estado_actual)
-        
-        historial_costos_global.append(costo_actual)
+
+        historial_este_reinicio = [costo_actual]
         iteracion = 0
 
         # Ciclo de Hill Climbing
         while costo_actual > 0 and iteracion < max_iteraciones:
             vecinos = generar_vecinos_swap(estado_actual)
-            
+
             # Estrategia Steepest-Ascent: buscar el MEJOR vecino de todos
             mejor_vecino = None
             mejor_costo_vecino = float('inf')
-            
+
             for vecino in vecinos:
                 costo_vecino = calcular_ataques_diagonales(vecino)
                 if costo_vecino < mejor_costo_vecino:
                     mejor_costo_vecino = costo_vecino
                     mejor_vecino = vecino
-            
+
             # Si el mejor vecino mejora la solución actual, nos movemos a él
             if mejor_costo_vecino < costo_actual:
                 estado_actual = mejor_vecino
                 costo_actual = mejor_costo_vecino
-                historial_costos_global.append(costo_actual)
+                historial_este_reinicio.append(costo_actual)
                 iteracion += 1
             else:
                 # Nos atascamos en un óptimo local, rompemos el while para hacer un reinicio
                 break
-        
+
         # Actualizamos el mejor global encontrado hasta ahora
         if costo_actual < mejor_costo_global:
             mejor_costo_global = costo_actual
             mejor_estado_global = estado_actual
-            
+            historial_convergencia = historial_este_reinicio
+            iteraciones_usadas = iteracion
+
         # Si llegamos a costo 0, encontramos la solución perfecta y paramos
         if mejor_costo_global == 0:
             break
@@ -88,7 +103,15 @@ def hill_climbing_steepest_ascent(N, max_reinicios=100, max_iteraciones=1000):
     tiempo_fin = time.time()
     tiempo_ejecucion = tiempo_fin - tiempo_inicio
 
-    return mejor_estado_global, mejor_costo_global, tiempo_ejecucion, historial_costos_global
+    return {
+        "N": N,
+        "estado": mejor_estado_global,
+        "costo": mejor_costo_global,
+        "tiempo": tiempo_ejecucion,
+        "historial_convergencia": historial_convergencia,
+        "reinicios_usados": reinicios_usados,
+        "iteraciones_usadas": iteraciones_usadas,
+    }
 
 def imprimir_tablero(estado):
     """
@@ -106,28 +129,101 @@ def imprimir_tablero(estado):
                 fila_str += "[ ]"
         print(fila_str)
 
+def graficar_tablero(estado, ruta_salida="tablero.png"):
+    """
+    Dibuja el tablero final con matplotlib (casillas tipo ajedrez + reinas).
+    Sirve para cualquier N, incluyendo N grandes donde la versión de texto
+    ya no es legible.
+    """
+    N = len(estado)
+ 
+    fig, eje = plt.subplots(figsize=(6, 6))
+ 
+    # Dibuja las casillas alternando colores, como un tablero de ajedrez
+    tablero_colores = [[(fila + col) % 2 for col in range(N)] for fila in range(N)]
+    eje.imshow(tablero_colores, cmap="Greys", vmin=0, vmax=1.5)
+ 
+    # Dibuja una reina en cada columna, en la fila indicada por el vector solución
+    for columna, fila in enumerate(estado):
+        eje.text(columna, fila, "♛", fontsize=max(6, 200 // N),
+                  ha="center", va="center", color="red")
+ 
+    eje.set_title(f"Tablero final — N={N}")
+    eje.set_xticks(range(N))
+    eje.set_yticks(range(N))
+    # Con N grande, ocultar las etiquetas de los ejes para que no se amontonen
+    if N > 20:
+        eje.set_xticklabels([])
+        eje.set_yticklabels([])
+    eje.set_xlabel("Columna")
+    eje.set_ylabel("Fila")
+ 
+    fig.tight_layout()
+    fig.savefig(ruta_salida, dpi=150)
+    plt.close(fig)
+    print(f"Tablero final guardado en: {ruta_salida}")
+
+def imprimir_metricas(resultado):
+    """
+    Imprime las métricas de la corrida: vector solución, costo final
+    (ataques diagonales) y tiempo de ejecución en segundos.
+    """
+    print("\n" + "-" * 40)
+    print(f"Vector Solución Final: {resultado['estado']}")
+    print(f"Costo final (Ataques diagonales): {resultado['costo']}")
+    print(f"Tiempo de ejecución: {resultado['tiempo']:.4f} segundos")
+    print(f"Reinicios usados: {resultado['reinicios_usados']}  |  "
+          f"Iteraciones del reinicio ganador: {resultado['iteraciones_usadas']}")
+    print("-" * 40)
+
+
+def graficar_convergencia(resultado, ruta_salida="convergencia.png"):
+    """
+    Grafica cómo disminuyó el costo (ataques diagonales) a lo largo de las
+    iteraciones del reinicio que llegó a la mejor solución.
+    Guarda la imagen en la ruta especificada.
+    """
+    historial = resultado["historial_convergencia"]
+
+    fig, eje = plt.subplots(figsize=(7, 4))
+    eje.plot(range(len(historial)), historial, marker="o", markersize=3)
+    eje.set_title(f"Convergencia — N={resultado['N']}")
+    eje.set_xlabel("Iteración")
+    eje.set_ylabel("Costo (ataques diagonales)")
+    eje.grid(True, linestyle="--", alpha=0.5)
+
+    fig.tight_layout()
+    fig.savefig(ruta_salida, dpi=150)
+    plt.close(fig)
+    print(f"\nGráfica de convergencia guardada en: {ruta_salida}")
+
 
 # =====================================================================
-# BLOQUE DE PRUEBA RÁPIDA (Borrar cuando se hagan las tablas y grafica de convergencia)
+# BLOQUE PRINCIPAL: ejecuta el algoritmo para un N dado y genera
+# los 3 entregables de la sección "Visualización y Métricas":
+#   1. Tablero final / vector solución
+#   2. Costo final y tiempo de ejecución
+#   3. Gráfica de convergencia
 # =====================================================================
 if __name__ == "__main__":
-    # Declaración de hiperparámetros base
-    N_reinas = 8
-    reinicios = 100
-    
-    print(f"Iniciando Steepest-Ascent Hill Climbing para N={N_reinas}...")
-    mejor_estado, mejor_costo, tiempo, historial = hill_climbing_steepest_ascent(
-        N=N_reinas, 
-        max_reinicios=reinicios
+    # Cambiar N_REINAS a 8, 50 o 100 (u otro valor) para probar distintos tamaños.
+    N_REINAS = 8
+    MAX_REINICIOS = 100
+    MAX_ITERACIONES = 1000
+
+    print(f"Ejecutando Steepest-Ascent Hill Climbing para N={N_REINAS}...")
+    resultado = hill_climbing_steepest_ascent(
+        N=N_REINAS,
+        max_reinicios=MAX_REINICIOS,
+        max_iteraciones=MAX_ITERACIONES,
     )
-    
-    print("-" * 40)
-    print(f"Vector Solución Final: {mejor_estado}")
-    print(f"Costo final (Ataques diagonales): {mejor_costo}")
-    print(f"Tiempo de ejecución: {tiempo:.4f} segundos")
-    print(f"Iteraciones/movimientos registrados: {len(historial)}")
-    print("-" * 40)
-    
-    # Imprime el tablero solo si es pequeño (N=8) para no saturar la consola
-    if N_reinas <= 15:
-        imprimir_tablero(mejor_estado)
+
+    # 1. Tablero final / vector solución
+    imprimir_tablero(resultado["estado"])
+    graficar_tablero(resultado["estado"])
+
+    # 2. Costo final y tiempo de ejecución
+    imprimir_metricas(resultado)
+
+    # 3. Gráfica de convergencia
+    graficar_convergencia(resultado)
