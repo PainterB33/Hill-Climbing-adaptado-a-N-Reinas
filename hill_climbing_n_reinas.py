@@ -210,6 +210,9 @@ if __name__ == "__main__":
     N_REINAS = 8
     MAX_REINICIOS = 100
     MAX_ITERACIONES = 1000
+    SEMILLA_ALEATORIA = 42  # fija la aleatoriedad para que la corrida sea reproducible
+
+    random.seed(SEMILLA_ALEATORIA)
 
     print(f"Ejecutando Steepest-Ascent Hill Climbing para N={N_REINAS}...")
     resultado = hill_climbing_steepest_ascent(
