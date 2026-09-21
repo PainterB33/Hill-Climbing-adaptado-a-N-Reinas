@@ -200,8 +200,7 @@ def graficar_convergencia(resultado, ruta_salida="convergencia.png"):
 
 
 # =====================================================================
-# BLOQUE PRINCIPAL: ejecuta el algoritmo para un N dado y genera
-# los 3 entregables de la sección "Visualización y Métricas":
+# BLOQUE PRINCIPAL: ejecuta el algoritmo para un N dado y genera:
 #   1. Tablero final / vector solución
 #   2. Costo final y tiempo de ejecución
 #   3. Gráfica de convergencia
