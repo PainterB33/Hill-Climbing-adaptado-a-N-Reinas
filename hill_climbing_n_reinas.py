@@ -1,6 +1,7 @@
 import random
 import time
 import itertools
+import argparse
 import matplotlib
 matplotlib.use("Agg")  # permite generar la imagen sin necesidad de una ventana gráfica
 import matplotlib.pyplot as plt
@@ -206,11 +207,20 @@ def graficar_convergencia(resultado, ruta_salida="convergencia.png"):
 #   3. Gráfica de convergencia
 # =====================================================================
 if __name__ == "__main__":
-    # Cambiar N_REINAS a 8, 50 o 100 (u otro valor) para probar distintos tamaños.
-    N_REINAS = 8
+    parser = argparse.ArgumentParser(
+        description="Hill Climbing aplicado al problema de las N-Reinas"
+    )
+    parser.add_argument(
+        "N_REINAS",
+        type=int,
+        help="Cantidad de reinas y tamaño del tablero"
+    )
+    args = parser.parse_args()
+
+    N_REINAS = args.N_REINAS
     MAX_REINICIOS = 100
     MAX_ITERACIONES = 1000
-    SEMILLA_ALEATORIA = 42  # fija la aleatoriedad para que la corrida sea reproducible
+    SEMILLA_ALEATORIA = 42
 
     random.seed(SEMILLA_ALEATORIA)
 
@@ -221,12 +231,7 @@ if __name__ == "__main__":
         max_iteraciones=MAX_ITERACIONES,
     )
 
-    # 1. Tablero final / vector solución
     imprimir_tablero(resultado["estado"])
     graficar_tablero(resultado["estado"])
-
-    # 2. Costo final y tiempo de ejecución
     imprimir_metricas(resultado)
-
-    # 3. Gráfica de convergencia
     graficar_convergencia(resultado)

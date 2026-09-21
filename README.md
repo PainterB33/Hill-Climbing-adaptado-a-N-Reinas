@@ -50,19 +50,27 @@ Cuando ningun vecino mejora el costo, el algoritmo considera que alcanzo un
 optimo local y comienza otro reinicio aleatorio. La ejecucion termina al
 encontrar costo `0` o al agotar el numero maximo de reinicios.
 
-## Ejecucion
+## Ejecución
 
-Desde la carpeta del proyecto se puede ejecutar:
+Desde la carpeta del proyecto, instale la librería necesaria:
 
 ```bash
-python hill_climbing_n_reinas.py
+py -m pip install matplotlib
 ```
 
-La configuracion de prueba actual usa:
+Luego ejecute el programa indicando el número de reinas:
 
-- `N = 8`
-- hasta `100` reinicios aleatorios
-- hasta `1000` movimientos por reinicio
+```bash
+py hill_climbing_n_reinas.py 8
+```
 
-El programa imprime el vector encontrado, el costo final, el tiempo de
-ejecucion, el numero de movimientos registrados y el tablero final.
+También se pueden realizar las pruebas solicitadas con:
+
+```bash
+py hill_climbing_n_reinas.py 50
+py hill_climbing_n_reinas.py 100
+```
+
+La configuración utiliza hasta `100` reinicios aleatorios y hasta `1000` movimientos por reinicio.
+
+El programa imprime el vector solución, el costo final, el tiempo de ejecución, el número de reinicios y las iteraciones del reinicio ganador. Además, genera el tablero final y la gráfica de convergencia.
